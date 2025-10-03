@@ -63,23 +63,6 @@ commands:
       payout_ratio_changed: "The payout rate has been changed since you sent the loan application. Please, invoke the command again."
     errors:
       positive_length: "Sorry, man, this social initiative is supposed only for girls have very very deep craves. I cannot make your big bro even longer :("
-  import:
-    description: "Import dicks from other bots"
-    result:
-      titles:
-        imported: "The following users have been imported:"
-        already_present: "The following users were already imported earlier:"
-        not_found: "The following users are not in the game yet:"
-      line:
-        imported: "➖ <b>%{name}</b> (<i>%{length}</i> cm)"
-        already_present: "➖ <b>%{name}</b> (<i>%{length}</i> cm)"
-        not_found: "➖ <b>%{name}</b>"
-    errors:
-      not_admin: "This command is supposed to be used by admins only!"
-      not_reply: "You must reply to a non-forwarded message sent by any of %{origin_bots}"
-      invalid_lines:
-        template: "Couldn't parse this message 🤔\nThe following lines are invalid:\n%{invalid_lines}"
-        line: "➖ <b>%{line}</b>"
   promo:
     description: "Activate a promo code"
     request: "Enter a promo code:"
@@ -122,3 +105,4 @@ titles:
 errors:
   not_group_chat: "This bot is supposed to do its mission in group chats only!"
   feature_disabled: "This feature is currently temporarily disabled."
+  private_bot: "Sorry, this is a private bot, working in a single chat 🙁"

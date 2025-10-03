@@ -39,11 +39,6 @@ ARG RUST_LOG
 ARG WEBHOOK_URL
 ARG DATABASE_URL
 ARG DATABASE_MAX_CONNECTIONS
-ARG HELP_ADMIN_CHANNEL_RU
-ARG HELP_ADMIN_CHANNEL_EN
-ARG HELP_ADMIN_CHAT_RU
-ARG HELP_ADMIN_CHAT_EN
-ARG HELP_GIT_REPO
 ARG CHATS_MERGING_ENABLED
 ARG TOP_UNLIMITED_ENABLED
 ARG MULTIPLE_LOANS_ENABLED
@@ -65,8 +60,13 @@ ARG DOD_RICH_EXCLUSION_RATIO
 ARG ANNOUNCEMENT_MAX_SHOWS
 ARG ANNOUNCEMENT_EN
 ARG ANNOUNCEMENT_RU
+### additional parameters of the Peezy fork
+ARG ALLOWED_CHAT_ID
+ARG CENTIMETERS_PER_EGGPLANT
+ARG EGGPLANTS_MAX
+###
 ENTRYPOINT [ "/usr/local/bin/dickGrowerBot" ]
 
-LABEL org.opencontainers.image.source=https://github.com/kozalosev/DickGrowerBot
+LABEL org.opencontainers.image.source=https://github.com/Peezy-BigD/PeezyBigDBot
 LABEL org.opencontainers.image.description="Who has the biggest dick ever? A game bot for Telegram"
 LABEL org.opencontainers.image.licenses='MIT+"Commons Clause" License Condition v1.0'

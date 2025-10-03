@@ -17,7 +17,7 @@ use teloxide::dptree::deps;
 use teloxide::update_listeners::webhooks::{axum_to_router, Options};
 use teloxide::update_listeners::UpdateListener;
 use crate::handlers::{checks, HelpCommands, LoanCommands, PrivacyCommands, PromoCommandState, StartCommands};
-use crate::handlers::{DickCommands, DickOfDayCommands, ImportCommands, PromoCommands};
+use crate::handlers::{DickCommands, DickOfDayCommands, PromoCommands};
 use crate::handlers::pvp::{BattleCommands, BattleCommandsNoArgs};
 use crate::handlers::stats::StatsCommands;
 use crate::handlers::utils::locks::LockCallbackServiceFacade;
@@ -36,8 +36,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app_config = config::AppConfig::from_env();
     let database_config = config::DatabaseConfig::from_env()?;
     let db_conn = repo::establish_database_connection(&database_config).await?;
+    
+    let allowed_chat_id = app_config.peezy_fork_settings.allowed_chat_id;
 
     let handler = dptree::entry()
+        .branch(Update::filter_message().filter(checks::is_not_allowed_chat(allowed_chat_id)).endpoint(checks::handle_not_allowed_chat))
         .branch(Update::filter_message().filter_command::<StartCommands>().endpoint(handlers::start_cmd_handler))
         .branch(Update::filter_message().filter_command::<HelpCommands>().endpoint(handlers::help_cmd_handler))
         .branch(Update::filter_message().filter_command::<PrivacyCommands>().endpoint(handlers::privacy_cmd_handler))
@@ -47,7 +50,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .branch(Update::filter_message().filter_command::<BattleCommandsNoArgs>().filter(checks::is_group_chat).endpoint(handlers::pvp::cmd_handler_no_args))
         .branch(Update::filter_message().filter_command::<StatsCommands>().endpoint(handlers::stats::cmd_handler))
         .branch(Update::filter_message().filter_command::<LoanCommands>().filter(checks::is_group_chat).endpoint(handlers::loan::cmd_handler))
-        .branch(Update::filter_message().filter_command::<ImportCommands>().filter(checks::is_group_chat).endpoint(handlers::import_cmd_handler))
         .branch(Update::filter_message().filter_command::<PromoCommands>().filter(checks::is_not_group_chat).enter_dialogue::<Message, InMemStorage<PromoCommandState>, PromoCommandState>()
             .branch(dptree::case![PromoCommandState::Start].endpoint(handlers::promo_cmd_handler)))
         .branch(Update::filter_message().enter_dialogue::<Message, InMemStorage<PromoCommandState>, PromoCommandState>()
@@ -57,8 +59,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .branch(Update::filter_inline_query().filter(handlers::promo_inline_filter).endpoint(handlers::promo_inline_handler))
         .branch(Update::filter_inline_query().filter(checks::inline::is_group_chat).endpoint(handlers::inline_handler))
         .branch(Update::filter_inline_query().filter(checks::inline::is_not_group_chat).endpoint(checks::inline::handle_not_group_chat))
+        .branch(Update::filter_chosen_inline_result().filter_async(checks::inline::is_not_allowed_chat).endpoint(checks::inline::handle_no_op))
         .branch(Update::filter_chosen_inline_result().filter(handlers::pvp::chosen_inline_result_filter).endpoint(handlers::pvp::inline_chosen_handler))
         .branch(Update::filter_chosen_inline_result().endpoint(handlers::inline_chosen_handler))
+        .branch(Update::filter_callback_query().filter_async(checks::callback::is_not_allowed_chat).endpoint(checks::callback::handle_not_allowed_chat))
         .branch(Update::filter_callback_query().filter(handlers::page_callback_filter).endpoint(handlers::page_callback_handler))
         .branch(Update::filter_callback_query().filter(handlers::pvp::callback_filter).endpoint(handlers::pvp::callback_handler))
         .branch(Update::filter_callback_query().filter(handlers::loan::callback_filter).endpoint(handlers::loan::callback_handler))
@@ -82,7 +86,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let repos = repo::Repositories::new(&db_conn, &app_config);
     let perks = handlers::perks::all(&db_conn, &app_config);
     let incrementor = handlers::utils::Incrementor::from_env(&repos.dicks, perks);
-    let help_context = config::build_context_for_help_messages(me, &incrementor, &handlers::ORIGINAL_BOT_USERNAMES)?;
+    let help_context = config::build_context_for_help_messages(me, &incrementor)?;
     let help_container = help::render_help_messages(help_context)?;
     let battle_locker = LockCallbackServiceFacade::from_config(app_config.features);
 
