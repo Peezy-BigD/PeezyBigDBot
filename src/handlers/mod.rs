@@ -227,6 +227,7 @@ pub mod checks {
                     .ok()
                     .flatten()
                     .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
+                    .inspect(|chat_id| log::info!("[inline] Chat is now allowed: {chat_id}"))
                     .unwrap_or(true)
             } else {
                 true
@@ -268,6 +269,7 @@ pub mod checks {
                 .ok()
                 .flatten()
                 .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
+                .inspect(|chat_id| log::info!("[callback] Chat is now allowed: {chat_id}"))
                 .unwrap_or(true)
         }
 
