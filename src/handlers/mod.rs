@@ -170,6 +170,7 @@ pub mod checks {
     }
     
     pub async fn handle_not_allowed_chat(bot: Bot, msg: Message) -> HandlerResult {
+        log::info!("[callback] Chat is now allowed: {}", msg.chat.id);
         handle_by_reply(bot, msg, "errors.private_bot").await
     }
     // end of the fork code
@@ -219,7 +220,6 @@ pub mod checks {
             if let Some(chat_in_sync_future) = maybe_chat_in_sync {
                 chat_in_sync_future
                     .map_ok(|res| res
-                        .filter(|c| c.chat_id.is_some() && c.chat_instance.is_some())
                         .and_then(|c| c.chat_id)
                         .map(ChatId))
                     .await
@@ -228,8 +228,12 @@ pub mod checks {
                     .flatten()
                     .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
                     .inspect(|chat_id| log::info!("[inline] Chat is now allowed: {chat_id}"))
-                    .unwrap_or(true)
+                    .unwrap_or_else(|| {
+                        log::info!("[inline] Couldn't find the chat in the database to check whether it's allowed");
+                        true
+                    })
             } else {
+                log::info!("[inline] Couldn't resolve chat id to check whether it's allowed");
                 true
             }
         }
@@ -259,9 +263,8 @@ pub mod checks {
                 .and_then(try_resolve_chat_id)
                 .map(ChatIdKind::from)
                 .unwrap_or(ChatIdKind::from(query.chat_instance));
-            repos.chats.get_chat(chat_id_kind)
+            repos.chats.get_chat(chat_id_kind.clone())
                 .map_ok(|res| res
-                    .filter(|c| c.chat_id.is_some() && c.chat_instance.is_some())
                     .and_then(|c| c.chat_id)
                     .map(ChatId))
                 .await
@@ -270,7 +273,10 @@ pub mod checks {
                 .flatten()
                 .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
                 .inspect(|chat_id| log::info!("[callback] Chat is now allowed: {chat_id}"))
-                .unwrap_or(true)
+                .unwrap_or_else(|| {
+                    log::info!("[callback] Couldn't find the chat {chat_id_kind} in the database to check whether it's allowed");
+                    true
+                })
         }
 
         pub async fn handle_not_allowed_chat(bot: Bot, query: CallbackQuery) -> HandlerResult {
