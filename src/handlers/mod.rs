@@ -170,7 +170,7 @@ pub mod checks {
     }
     
     pub async fn handle_not_allowed_chat(bot: Bot, msg: Message) -> HandlerResult {
-        log::info!("[callback] Chat is now allowed: {}", msg.chat.id);
+        log::info!("Chat is not allowed: {}", msg.chat.id);
         handle_by_reply(bot, msg, "errors.private_bot").await
     }
     // end of the fork code
@@ -192,6 +192,7 @@ pub mod checks {
         use crate::handlers::try_resolve_chat_id;
         use crate::repo::Repositories;
         use super::HandlerResult;
+        use super::func_helpers::if_true;
 
         pub fn is_group_chat(query: InlineQuery) -> bool {
             query.chat_type
@@ -226,8 +227,9 @@ pub mod checks {
                     .inspect_err(|err| log::error!("[checks:inline:is_not_allowed_chat] error: {}", err))
                     .ok()
                     .flatten()
-                    .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
-                    .inspect(|chat_id| log::info!("[inline] Chat is now allowed: {chat_id}"))
+                    .map(|chat_id| (chat_id, chat_id != cfg.peezy_fork_settings.allowed_chat_id))
+                    .inspect(if_true(|chat_id| log::info!("[inline] Chat is not allowed: {chat_id}")))
+                    .map(|(_, not_allowed)| not_allowed)
                     .unwrap_or_else(|| {
                         log::info!("[inline] Couldn't find the chat in the database to check whether it's allowed");
                         true
@@ -257,6 +259,7 @@ pub mod checks {
         use crate::domain::LanguageCode;
         use crate::handlers::{try_resolve_chat_id, HandlerResult};
         use crate::repo::{ChatIdKind, Repositories};
+        use super::func_helpers::if_true;
 
         pub async fn is_not_allowed_chat(repos: Repositories, cfg: AppConfig, query: CallbackQuery) -> bool {
             let chat_id_kind = query.inline_message_id.as_ref()
@@ -271,8 +274,9 @@ pub mod checks {
                 .inspect_err(|err| log::error!("[checks:callback:is_not_allowed_chat] error: {}", err))
                 .ok()
                 .flatten()
-                .map(|chat_id| chat_id != cfg.peezy_fork_settings.allowed_chat_id)
-                .inspect(|chat_id| log::info!("[callback] Chat is now allowed: {chat_id}"))
+                .map(|chat_id| (chat_id, chat_id != cfg.peezy_fork_settings.allowed_chat_id))
+                .inspect(if_true(|chat_id| log::info!("[callback] Chat is not allowed: {chat_id}")))
+                .map(|(_, not_allowed)| not_allowed)
                 .unwrap_or_else(|| {
                     log::info!("[callback] Couldn't find the chat {chat_id_kind} in the database to check whether it's allowed");
                     true
@@ -290,5 +294,16 @@ pub mod checks {
                 .map_err(Into::into)
         }
     }
+
+    mod func_helpers {
+
+        /// Takes a (T, bool) argument. Executes an action(T) function if the second value is true.
+        pub fn if_true<T>(action: impl FnOnce(&T) -> ()) -> impl FnOnce(&(T, bool)) -> () {
+            |(value, condition)| if *condition {
+                action(value)
+            } else {}
+        }
+
+     }
 
 }
